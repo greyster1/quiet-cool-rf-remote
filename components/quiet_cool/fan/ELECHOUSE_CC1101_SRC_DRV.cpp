@@ -418,21 +418,20 @@ setModulation(modulation);
 *INPUT        :none
 *OUTPUT       :none
 ****************************************************************/
-void ELECHOUSE_CC1101::setModulation(byte m){
-if (m>4){m=4;}
-modulation = m;
-Split_MDMCFG2();
-switch (m)
-{
-case 0: m2MODFM=0x00; frend0=0x10; break; // 2-FSK
-case 1: m2MODFM=0x10; frend0=0x10; break; // GFSK
-case 2: m2MODFM=0x30; frend0=0x11; break; // 2-FSK (was incorrectly set to ASK)
-case 3: m2MODFM=0x40; frend0=0x10; break; // 4-FSK
-case 4: m2MODFM=0x70; frend0=0x10; break; // MSK
-}
-SpiWriteReg(CC1101_MDMCFG2, m2DCOFF+m2MODFM+m2MANCH+m2SYNCM);
-SpiWriteReg(CC1101_FREND0,   frend0);
-setPA(pa);
+void ELECHOUSE_CC1101::setModulation(byte m) {
+    if (m > 4) { m = 4; }
+    modulation = m;
+    Split_MDMCFG2();
+    switch (m) {
+        case 0: m2MODFM = 0x00; frend0 = 0x10; break; // 2-FSK
+        case 1: m2MODFM = 0x10; frend0 = 0x10; break; // GFSK
+        case 2: m2MODFM = 0x00; frend0 = 0x10; break; // 2-FSK (corrected to set 2-FSK)
+        case 3: m2MODFM = 0x40; frend0 = 0x10; break; // 4-FSK
+        case 4: m2MODFM = 0x70; frend0 = 0x10; break; // MSK
+    }
+    SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
+    SpiWriteReg(CC1101_FREND0, frend0);
+    setPA(pa);
 }
 /****************************************************************
 *FUNCTION NAME:PA Power

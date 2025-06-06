@@ -106,20 +106,20 @@ bool QuietCool::initCC1101() {
     ELECHOUSE_cc1101.Init();
 
     // Basic configuration
-    ELECHOUSE_cc1101.setMHZ(FREQ_MHZ);
+    ELECHOUSE_cc1101.setMHZ(433.92);  // Match the remote’s frequency
     ELECHOUSE_cc1101.setPA(0);
 
     // Configure for direct mode transmission
-    ELECHOUSE_cc1101.setCCMode(1);
-    ELECHOUSE_cc1101.setModulation(2);
-    ELECHOUSE_cc1101.setDeviation(10);
-    ELECHOUSE_cc1101.setDRate(2.398);
+    ELECHOUSE_cc1101.setCCMode(1);  // Transparent mode
+    ELECHOUSE_cc1101.setModulation(2);  // 2-FSK to match the remote
+    ELECHOUSE_cc1101.setDeviation(10); // Keep 10 kHz deviation (adjust if needed)
+    ELECHOUSE_cc1101.setDRate(2.398);  // Matches the remote’s ~2.5 kBaud
 
     // Disable all packet handling
     ELECHOUSE_cc1101.setSyncMode(0);
     ELECHOUSE_cc1101.setWhiteData(false);
     ELECHOUSE_cc1101.setManchester(false);
-    ELECHOUSE_cc1101.setPktFormat(3);
+    ELECHOUSE_cc1101.setPktFormat(3);  // Asynchronous serial mode
     ELECHOUSE_cc1101.setCrc(0);
     ELECHOUSE_cc1101.setLengthConfig(0);
     ELECHOUSE_cc1101.setPacketLength(0);

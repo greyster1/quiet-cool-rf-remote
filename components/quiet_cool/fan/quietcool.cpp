@@ -135,14 +135,14 @@ bool QuietCool::initCC1101() {
 void QuietCool::sendPacket(const char *data, uint8_t len) {
     for (int i = 0; i < 3; i++) {
         sendRawData(data, len);
-        delay(18);
+        delay(58); //changed from 18
     }
 }
 
 void QuietCool::sendBits(const char *data, uint8_t len) {
     for (int bit = 0; bit < len; bit++) {
         digitalWrite(gdo0_pin, TO_BIT(data[bit]));
-        delayMicroseconds(415);
+        delayMicroseconds(400); // changed from original code 415
     }
 }
 

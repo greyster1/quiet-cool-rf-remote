@@ -133,9 +133,9 @@ bool QuietCool::initCC1101() {
 }
 
 void QuietCool::sendPacket(const char *data, uint8_t len) {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {  // Change to 4 bursts
         sendRawData(data, len);
-        delay(58); //changed from 18
+        delay(58); // 58 ms + 10 ms (from sendRawData) ≈ 68 ms
     }
 }
 

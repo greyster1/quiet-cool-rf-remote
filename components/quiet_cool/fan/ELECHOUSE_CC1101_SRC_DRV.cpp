@@ -426,7 +426,7 @@ switch (m)
 {
 case 0: m2MODFM=0x00; frend0=0x10; break; // 2-FSK
 case 1: m2MODFM=0x10; frend0=0x10; break; // GFSK
-case 2: m2MODFM=0x30; frend0=0x11; break; // ASK
+case 2: m2MODFM=0x30; frend0=0x11; break; // 2-FSK (was incorrectly set to ASK)
 case 3: m2MODFM=0x40; frend0=0x10; break; // 4-FSK
 case 4: m2MODFM=0x70; frend0=0x10; break; // MSK
 }

@@ -107,7 +107,7 @@ bool QuietCool::initCC1101() {
 
     // Basic configuration
     ELECHOUSE_cc1101.setMHZ(433.92);  // Match the remote’s frequency
-    ELECHOUSE_cc1101.setPA(10);
+    ELECHOUSE_cc1101.setPA(12);
 
     // Configure for direct mode transmission
     ELECHOUSE_cc1101.setCCMode(1);  // Transparent mode

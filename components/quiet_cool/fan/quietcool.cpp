@@ -67,7 +67,7 @@ bool QuietCool::initCC1101() {
 
     // Configure for direct mode transmission
     ELECHOUSE_cc1101.setCCMode(1);
-    ELECHOUSE_cc1101.setModulation(0);
+    ELECHOUSE_cc1101.setModulation(2);
     ELECHOUSE_cc1101.setDeviation(10);
     ELECHOUSE_cc1101.setDRate(2.398);
 

@@ -117,6 +117,7 @@ void QuietCool::sendRawData(const char* data, uint8_t len) {
     digitalWrite(gdo0_pin, 0);
     noInterrupts();
     ELECHOUSE_cc1101.SetTx();
+    delayMicroseconds(500); // Wait for TX mode stabilization
     //sendBits(preamble, strlen(preamble));
     sendBits(data, len);
     ELECHOUSE_cc1101.setSidle();

@@ -120,6 +120,7 @@ void QuietCool::sendRawData(const char* data, uint8_t len) {
     delayMicroseconds(500); // Wait for TX mode stabilization
     //sendBits(preamble, strlen(preamble));
     sendBits(data, len);
+    digitalWrite(gdo0_pin, HIGH); // Set GDO0 HIGH after last bit
     ELECHOUSE_cc1101.setSidle();
     interrupts();
 

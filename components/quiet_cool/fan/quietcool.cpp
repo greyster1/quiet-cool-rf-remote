@@ -187,7 +187,7 @@ void QuietCool::send(QuietCoolSpeed speed, QuietCoolDuration duration) {
     const char* cmd = getCommand(speed, duration);
     ESP_LOGI(TAG, "%s", cmd);
     if (cmd)
-        sendPacket(cmd, strlen(cmd)-1);
+        sendPacket(cmd, strlen(cmd)); // Remove -1
 }
 
 }  // namespace quiet_cool

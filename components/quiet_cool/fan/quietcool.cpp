@@ -72,7 +72,7 @@ bool QuietCool::initCC1101() {
     ELECHOUSE_cc1101.setCCMode(1);
     ELECHOUSE_cc1101.setModulation(0); // G: Changed back to 0
     ELECHOUSE_cc1101.setDeviation(10);
-    ELECHOUSE_cc1101.setDRate(2.5); // Change from 2.398 to 2.5 kbps
+    ELECHOUSE_cc1101.setDRate(2.500); // Change from 2.398 to 2.5 kbps
     // ELECHOUSE_cc1101.setDRate(2.398); old
 
     // Disable all packet handling

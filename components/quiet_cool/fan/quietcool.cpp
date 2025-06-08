@@ -101,7 +101,7 @@ void QuietCool::sendPacket(const char *data, uint8_t len) {
 void QuietCool::sendBits(const char *data, uint8_t len) {
     for (int bit = 0; bit < len; bit++) {
         digitalWrite(gdo0_pin, TO_BIT(data[bit]));
-        delayMicroseconds(415);
+        delayMicroseconds(400); // Change from 415 to 400
     }
 }
 

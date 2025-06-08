@@ -113,7 +113,7 @@ void QuietCool::sendRawData(const char* data, uint8_t len) {
 
     ESP_LOGD(TAG, "Sending %d bits", len);
 
-    const char *preamble = "00";
+    const char *preamble = QuietCool::preamble; // Use the pre-signal as preamble
     digitalWrite(gdo0_pin, 0);
     noInterrupts();
     ELECHOUSE_cc1101.SetTx();

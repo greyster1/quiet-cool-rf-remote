@@ -42,7 +42,7 @@ enum QuietCoolDuration {
 class QuietCool {
   private:
     static const char* speed_settings[];
-    static const char* preamble;  // Added pre-signal as static member
+   // static const char* preamble;  // Added pre-signal as static member
     static constexpr uint8_t TO_BIT(char c) { return (c == '1') ? 1 : 0; }
 
     uint8_t csn_pin;

@@ -34,7 +34,7 @@ const char* QuietCool::speed_settings[] = {
 };
 
 // Define the pre-signal
-const char* QuietCool::preamble = "000010101011010101010101010101010101010101010101010101010101010101010101010001011011101010000000110110010110000000001011001101101000110011001100110000";
+// const char* QuietCool::preamble = "000010101011010101010101010101010101010101010101010101010101010101010101010001011011101010000000110110010110000000001011001101101000110011001100110000";
 
 QuietCool::QuietCool(uint8_t csn, uint8_t gdo0, uint8_t gdo2, uint8_t sck, uint8_t miso, uint8_t mosi)
     : csn_pin(csn), gdo0_pin(gdo0), gdo2_pin(gdo2), sck_pin(sck), miso_pin(miso), mosi_pin(mosi) {}
@@ -113,7 +113,7 @@ void QuietCool::sendRawData(const char* data, uint8_t len) {
 
     ESP_LOGD(TAG, "Sending %d bits", len);
 
-    const char *preamble = QuietCool::preamble; // Use the pre-signal as preamble
+   // const char *preamble = QuietCool::preamble; // Use the pre-signal as preamble
     digitalWrite(gdo0_pin, 0);
     noInterrupts();
     ELECHOUSE_cc1101.SetTx();

@@ -44,7 +44,7 @@ byte GDO2_M[max_modul];
 byte gdo_set=0;
 bool spi = 0;
 bool ccmode = 0;
-float MHz = 433.92;
+float MHz = 433.915; //was 433.92
 byte m4RxBw = 0;
 byte m4DaRa;
 byte m2DCOFF;

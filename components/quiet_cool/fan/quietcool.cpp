@@ -66,12 +66,12 @@ bool QuietCool::initCC1101() {
 
     // Basic configuration
     ELECHOUSE_cc1101.setMHZ(FREQ_MHZ);
-    ELECHOUSE_cc1101.setPA(20); //G: increased power
+    ELECHOUSE_cc1101.setPA(10); //G: increased power
 
     // Configure for direct mode transmission
     ELECHOUSE_cc1101.setCCMode(1);
     ELECHOUSE_cc1101.setModulation(0); // G: Changed back to 0
-    ELECHOUSE_cc1101.setDeviation(0);
+    ELECHOUSE_cc1101.setDeviation(5);
     ELECHOUSE_cc1101.setDRate(2.398); // Change from 2.398 to 2.5 kbps
     // ELECHOUSE_cc1101.setDRate(2.398); old
 

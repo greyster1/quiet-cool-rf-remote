@@ -66,7 +66,7 @@ bool QuietCool::initCC1101() {
 
     // Basic configuration
     ELECHOUSE_cc1101.setMHZ(FREQ_MHZ);
-    ELECHOUSE_cc1101.setPA(10); //G: increased power
+    ELECHOUSE_cc1101.setPA(20); //G: increased power
 
     // Configure for direct mode transmission
     ELECHOUSE_cc1101.setCCMode(1);

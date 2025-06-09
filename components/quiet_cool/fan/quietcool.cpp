@@ -95,7 +95,7 @@ bool QuietCool::initCC1101() {
 void QuietCool::sendPacket(const char *data, uint8_t len) {
     for (int i = 0; i < 3; i++) {
         sendRawData(data, len);
-        delay(18);
+        delay(34); //changed from 18
     }
 }
 

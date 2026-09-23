@@ -4,7 +4,9 @@
 #include "esphome/core/component.h"
 #include "esphome/components/spi/spi.h"
 #include "quietcool.h"
+#include <array>
 #include <memory>
+#include <vector>
 
 namespace esphome {
     namespace quiet_cool {
@@ -26,14 +28,24 @@ namespace esphome {
                 this->gdo2_pin_ = gdo2;
                 this->pins_set_ = true;
             }
-	    void set_frequencies(float center_freq_mhz, float devation_khz) {
+	    void set_frequencies(float center_freq_mhz, float deviation_khz) {
 		this->center_freq_mhz = center_freq_mhz;
 		this->deviation_khz = deviation_khz;
 	    }
+	    void set_tx_power(int tx_power_dbm) { this->tx_power_dbm = tx_power_dbm; }
+            void set_remote_id(const std::vector<uint8_t> &remote_id) {
+                for (size_t i = 0; i < 7 && i < remote_id.size(); ++i) remote_id_[i] = remote_id[i];
+            }
+
+            // Runtime tuning, e.g. from a template number's set_action
+            void set_center_frequency(float mhz);
+            float get_center_frequency() const { return this->center_freq_mhz; }
+            // Re-transmit the command for the current state (handy while sweeping frequency)
+            void resend();
 
         protected:
             void control(const fan::FanCall &call) override;
-            void write_state_();
+            void transmit_state_();
         private:
             std::unique_ptr<QuietCool> qc_;
 
@@ -42,13 +54,9 @@ namespace esphome {
             uint8_t gdo2_pin_{};
 	    float center_freq_mhz{433.897};
 	    float deviation_khz{10};
-            float speed_{0.0f};
+	    int tx_power_dbm{10};
             bool pins_set_{false};
             std::array<uint8_t, 7> remote_id_{{0x2D, 0xD4, 0x06, 0xCB, 0x00, 0xF7, 0xF2}};
-        public:
-            void set_remote_id(const std::vector<uint8_t> &remote_id) {
-                for (size_t i = 0; i < 7 && i < remote_id.size(); ++i) remote_id_[i] = remote_id[i];
-            }
         };
 
     }  // namespace quiet_cool

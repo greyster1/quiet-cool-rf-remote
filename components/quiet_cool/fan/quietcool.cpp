@@ -73,7 +73,30 @@ void QuietCool::sendRawData(const uint8_t* data, size_t len) {
     }
     ESP_LOGD(TAG, "Sending %zu bytes (%zu bits)", len, len * 8);
     logBits(data, len);
-    ELECHOUSE_cc1101.SendData((byte*)data, (byte)len);
+    // Same sequence as ELECHOUSE_cc1101.SendData(), but with timeouts on the GDO0
+    // waits so a miswired GDO0 logs an error instead of hanging until the watchdog fires.
+    ELECHOUSE_cc1101.SpiWriteReg(CC1101_TXFIFO, (byte)len);
+    ELECHOUSE_cc1101.SpiWriteBurstReg(CC1101_TXFIFO, (byte*)data, (byte)len);
+    ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
+    ELECHOUSE_cc1101.SpiStrobe(CC1101_STX);
+    uint32_t start = millis();
+    while (!digitalRead(gdo0_pin)) {
+        if (millis() - start > 500) {
+            ESP_LOGE(TAG, "TX timeout: GDO0 (GPIO%d) never went high; check GDO0 wiring", gdo0_pin);
+            break;
+        }
+        yield();
+    }
+    start = millis();
+    while (digitalRead(gdo0_pin)) {
+        if (millis() - start > 500) {
+            ESP_LOGE(TAG, "TX timeout: GDO0 (GPIO%d) stuck high", gdo0_pin);
+            break;
+        }
+        yield();
+    }
+    ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
+    ELECHOUSE_cc1101.SpiStrobe(CC1101_SFTX);
     delay(10);
 }
 
@@ -123,7 +146,7 @@ const uint8_t QuietCool::getCommand(QuietCoolSpeed speed, QuietCoolDuration dura
     return result;
 }
 
-    QuietCool::QuietCool(uint8_t csn, uint8_t gdo0, uint8_t gdo2, uint8_t sck, uint8_t miso, uint8_t mosi, const uint8_t* remote_id_in, float center_freq, float deviation_khz) : 
+    QuietCool::QuietCool(uint8_t csn, uint8_t gdo0, uint8_t gdo2, uint8_t sck, uint8_t miso, uint8_t mosi, const uint8_t* remote_id_in, float center_freq, float deviation_khz, int tx_power_dbm) : 
     csn_pin(csn),
     gdo0_pin(gdo0),
     gdo2_pin(gdo2),
@@ -131,14 +154,15 @@ const uint8_t QuietCool::getCommand(QuietCoolSpeed speed, QuietCoolDuration dura
     miso_pin(miso),
     mosi_pin(mosi),
     center_freq_mhz(center_freq),
-    deviation_khz(deviation_khz)
+    deviation_khz(deviation_khz),
+    tx_power_dbm(tx_power_dbm)
 {
     for (int i = 0; i < 7; ++i) remote_id[i] = remote_id_in[i];
 }
 
 // --- Initialize CC1101 and verify communication ---
 bool QuietCool::initCC1101() {
-    ESP_LOGD(TAG, "sck:%d, miso:%d, mosi:%d, csn:%d, gdo0:%d\n", sck_pin, miso_pin, mosi_pin, csn_pin, gdo0_pin);
+    ESP_LOGD(TAG, "sck:%d, miso:%d, mosi:%d, csn:%d, gdo0:%d", sck_pin, miso_pin, mosi_pin, csn_pin, gdo0_pin);
     ELECHOUSE_cc1101.setSpiPin(sck_pin, miso_pin, mosi_pin, csn_pin);
 
     int tries = 10;
@@ -167,17 +191,18 @@ bool QuietCool::initCC1101() {
     ELECHOUSE_cc1101.setCCMode(1);
     ELECHOUSE_cc1101.Init();
 
-    ESP_LOGE(TAG, "Setting GDO0 pin to %d", gdo0_pin);
+    ESP_LOGD(TAG, "Setting GDO0 pin to %d", gdo0_pin);
     ELECHOUSE_cc1101.setGDO0(gdo0_pin);
 
     // Basic configuration
-    ESP_LOGE(TAG, "Setting center frequency to %f MHz", center_freq_mhz);
+    ESP_LOGI(TAG, "Setting center frequency to %.4f MHz", center_freq_mhz);
     ELECHOUSE_cc1101.setMHZ(center_freq_mhz);
-    ELECHOUSE_cc1101.setPA(0);
+    ESP_LOGI(TAG, "Setting TX power to %d dBm", tx_power_dbm);
+    ELECHOUSE_cc1101.setPA(tx_power_dbm);
 
     // Packet-related configuration
     ELECHOUSE_cc1101.setModulation(0);       // FSK
-    ESP_LOGI(TAG, "Setting deviaion to %f kHz.  That's a total spread of %f kHz", deviation_khz, 2*deviation_khz);
+    ESP_LOGI(TAG, "Setting deviation to %f kHz.  That's a total spread of %f kHz", deviation_khz, 2*deviation_khz);
     ELECHOUSE_cc1101.setDeviation(deviation_khz);
     ELECHOUSE_cc1101.setDRate(2.398);
     ELECHOUSE_cc1101.setSyncMode(0);
@@ -196,17 +221,33 @@ uint8_t QuietCool::readChipVersion() {
     return ELECHOUSE_cc1101.SpiReadReg(0xF1);
 }
 
-void QuietCool::begin() {
+bool QuietCool::begin() {
     ESP_LOGI(TAG, "Starting CC1101 setup");
     if (!initCC1101()) {
         ESP_LOGE(TAG, "CC1101 not detected");
-        return;
+        ready = false;
+        return false;
     }
+    ready = true;
     ESP_LOGI(TAG, "CC1101 ready");
+    return true;
+}
+
+void QuietCool::setFrequency(float mhz) {
+    center_freq_mhz = mhz;
+    if (!ready) return;
+    ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
+    ELECHOUSE_cc1101.setMHZ(mhz);
+    ELECHOUSE_cc1101.setPA(tx_power_dbm);
+    ESP_LOGI(TAG, "Center frequency now %.4f MHz", mhz);
 }
 
 void QuietCool::send(QuietCoolSpeed speed, QuietCoolDuration duration) {
-    ESP_LOGI(TAG, "send(0x%02x, %0x%02x)", speed, duration);
+    if (!ready) {
+        ESP_LOGE(TAG, "CC1101 not initialised; not sending");
+        return;
+    }
+    ESP_LOGI(TAG, "send(0x%02x, 0x%02x) at %.4f MHz", speed, duration, center_freq_mhz);
     const uint8_t cmd_code = getCommand(speed, duration);
     ESP_LOGI(TAG, "cmd=%02x ", cmd_code);
     sendPacket(cmd_code);

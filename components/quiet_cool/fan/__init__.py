@@ -1,12 +1,8 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import fan, output, spi
-from esphome.const import (
-    CONF_DIRECTION_OUTPUT,
-    CONF_OSCILLATION_OUTPUT,
-    CONF_OUTPUT,
-    CONF_OUTPUT_ID,
-)
+from esphome.components import fan, spi
+from esphome.const import CONF_ID
+from esphome.core import CORE
 from .. import quiet_cool_ns
 
 # Additional pin configuration keys
@@ -15,6 +11,7 @@ CONF_GDO2_PIN = "gdo2_pin"
 CONF_REMOTE_ID = "remote_id"
 CONF_FREQ_MHZ = "center_freq_mhz"
 CONF_DEVIATION_KHZ = "deviation_khz"
+CONF_TX_POWER_DBM = "tx_power_dbm"
 
 DEPENDENCIES = ["spi"]
 
@@ -22,18 +19,25 @@ QuietCoolFan = quiet_cool_ns.class_("QuietCoolFan", cg.Component, fan.Fan, spi.S
 
 CONFIG_SCHEMA = fan.fan_schema(QuietCoolFan).extend(
     {
-        cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(QuietCoolFan),
         cv.Required(CONF_GDO0_PIN                      ): cv.uint8_t,
         cv.Required(CONF_GDO2_PIN                      ): cv.uint8_t,
-        cv.Required(CONF_REMOTE_ID                     ): cv.ensure_list(cv.hex_uint8_t),
-        cv.Optional(CONF_FREQ_MHZ     , default=433.897): cv.float_,
-        cv.Optional(CONF_DEVIATION_KHZ, default=10.0   ): cv.float_
+        cv.Required(CONF_REMOTE_ID                     ): cv.All(cv.ensure_list(cv.hex_uint8_t), cv.Length(min=7, max=7)),
+        cv.Optional(CONF_FREQ_MHZ     , default=433.897): cv.float_range(min=387.0, max=464.0),
+        cv.Optional(CONF_DEVIATION_KHZ, default=10.0   ): cv.float_range(min=1.58, max=380.0),
+        # CC1101 PA table steps: -30, -20, -15, -10, 0, 5, 7, 10 dBm
+        cv.Optional(CONF_TX_POWER_DBM , default=10     ): cv.int_range(min=-30, max=10),
     }
 ).extend(cv.COMPONENT_SCHEMA).extend(spi.spi_device_schema(cs_pin_required=True))
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_OUTPUT_ID])  # type: QuietCoolFan
+    # The bundled ELECHOUSE CC1101 driver uses Arduino's SPI.h; ESPHome's spi component
+    # no longer pulls that library in on ESP32, so request it explicitly.
+    if CORE.using_arduino:
+        cg.add_library("SPI", None)
+
+    # Built from CONF_ID (not a separate output_id) so `id(...)` works in YAML lambdas
+    var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await fan.register_fan(var, config)
     await spi.register_spi_device(var, config)
@@ -42,3 +46,4 @@ async def to_code(config):
     cg.add(var.set_pins(cs_num, config[CONF_GDO0_PIN], config[CONF_GDO2_PIN]))
     cg.add(var.set_remote_id(config[CONF_REMOTE_ID]))
     cg.add(var.set_frequencies(config[CONF_FREQ_MHZ], config[CONF_DEVIATION_KHZ]))
+    cg.add(var.set_tx_power(config[CONF_TX_POWER_DBM]))

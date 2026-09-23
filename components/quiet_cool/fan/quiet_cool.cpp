@@ -4,7 +4,7 @@
 
 namespace esphome {
     namespace quiet_cool {
-        
+
         static const char *TAG = "quiet_cool.fan";
 
         void QuietCoolFan::setup() {
@@ -15,10 +15,13 @@ namespace esphome {
 
             if (this->qc_ == nullptr) {
                 // Use standard VSPI pins (CLK18, MISO19, MOSI23) for ESP32 dev boards
-                this->qc_.reset(new QuietCool(this->csn_pin_, this->gdo0_pin_, this->gdo2_pin_, 18, 19, 23, remote_id_.data(), center_freq_mhz, deviation_khz));
+                this->qc_.reset(new QuietCool(this->csn_pin_, this->gdo0_pin_, this->gdo2_pin_, 18, 19, 23, remote_id_.data(), center_freq_mhz, deviation_khz, tx_power_dbm));
             }
 
-            this->qc_->begin();
+            if (!this->qc_->begin()) {
+                this->mark_failed();
+                return;
+            }
             ESP_LOGD(TAG, "QuietCool initialized");
         }
 
@@ -27,42 +30,48 @@ namespace esphome {
         }
 
         void QuietCoolFan::control(const fan::FanCall &call) {
-            float inc_speed = call.get_speed().value_or(-1.0f);
-            ESP_LOGD(TAG, "Control called: state=%s, speed=%s", 
+            ESP_LOGD(TAG, "Control called: state=%s, speed=%s",
                      call.get_state().has_value() ? (*call.get_state() ? "ON" : "OFF") : "<unchanged>",
-                     call.get_speed().has_value() ? (std::to_string(inc_speed)).c_str() : "<unchanged>");
-            bool old_state = this->state;
+                     call.get_speed().has_value() ? std::to_string(*call.get_speed()).c_str() : "<unchanged>");
             if (call.get_state().has_value())
                 this->state = *call.get_state();
+            if (call.get_speed().has_value())
+                this->speed = *call.get_speed();
 
-            QuietCoolSpeed qcspd = QUIETCOOL_SPEED_LOW;
-            QuietCoolDuration qcdur = QUIETCOOL_DURATION_ON;
-            if (call.get_speed().has_value()) {
-                this->speed_ = *call.get_speed();
-                if (this->speed_ < 0.5) qcdur = QUIETCOOL_DURATION_OFF;
-                else if (this->speed_ < 1.5) qcspd = QUIETCOOL_SPEED_LOW;
-                else if (this->speed_ < 2.5) qcspd = QUIETCOOL_SPEED_MEDIUM;
-                else if (this->speed_ < 3.5) qcspd = QUIETCOOL_SPEED_HIGH;
-            } else {
-		qcdur = QUIETCOOL_DURATION_OFF;
-	    }
-            if (this->qc_) this->qc_->send(qcspd, qcdur);
-
-
-            ESP_LOGV(TAG, "Post-update internal state: state=%s speed=%s", 
-                     (this->state ? "ON" : "OFF"),
-                     (std::to_string(this->speed_)).c_str());
-
-            this->write_state_();
+            this->transmit_state_();
             this->publish_state();
         }
 
-        void QuietCoolFan::write_state_() {
-            ESP_LOGVV(TAG, "write_state_: driving pins: state=%s ", 
-                      (this->state ? "ON" : "OFF"));
-            ESP_LOGVV(TAG, "write_state_: output calls completed");
+        void QuietCoolFan::transmit_state_() {
+            if (!this->qc_) return;
+            if (!this->state) {
+                // Matches what upstream sent for "off" (0x90), which is the tested case
+                this->qc_->send(QUIETCOOL_SPEED_LOW, QUIETCOOL_DURATION_OFF);
+                return;
+            }
+            QuietCoolSpeed qcspd = QUIETCOOL_SPEED_HIGH;
+            if (this->speed == 1) qcspd = QUIETCOOL_SPEED_LOW;
+            else if (this->speed == 2) qcspd = QUIETCOOL_SPEED_MEDIUM;
+            this->qc_->send(qcspd, QUIETCOOL_DURATION_ON);
         }
 
-        void QuietCoolFan::dump_config() { LOG_FAN("", "QuietCool fan", this); }
+        void QuietCoolFan::set_center_frequency(float mhz) {
+            this->center_freq_mhz = mhz;
+            if (this->qc_) this->qc_->setFrequency(mhz);
+        }
+
+        void QuietCoolFan::resend() {
+            ESP_LOGI(TAG, "Resending current state at %.4f MHz", this->center_freq_mhz);
+            this->transmit_state_();
+        }
+
+        void QuietCoolFan::dump_config() {
+            LOG_FAN("", "QuietCool fan", this);
+            ESP_LOGCONFIG(TAG, "  Remote ID: %02X %02X %02X %02X %02X %02X %02X",
+                          remote_id_[0], remote_id_[1], remote_id_[2], remote_id_[3],
+                          remote_id_[4], remote_id_[5], remote_id_[6]);
+            ESP_LOGCONFIG(TAG, "  Frequency: %.4f MHz, deviation: %.1f kHz, TX power: %d dBm",
+                          center_freq_mhz, deviation_khz, tx_power_dbm);
+        }
     }  // namespace quiet_cool
 }  // namespace esphome

@@ -42,6 +42,9 @@ namespace esphome {
             float get_center_frequency() const { return this->center_freq_mhz; }
             // Re-transmit the command for the current state (handy while sweeping frequency)
             void resend();
+            // Remote's timer setting: 0 = on (no timer), or 1, 2, 4, 8, 12 hours.
+            // Sent with every "on" command; re-sent immediately if the fan is running.
+            void set_duration_hours(int hours);
 
         protected:
             void control(const fan::FanCall &call) override;
@@ -55,6 +58,8 @@ namespace esphome {
 	    float center_freq_mhz{433.897};
 	    float deviation_khz{10};
 	    int tx_power_dbm{10};
+	    QuietCoolDuration duration_{QUIETCOOL_DURATION_ON};
+	    int duration_hours_{0};
             bool pins_set_{false};
             std::array<uint8_t, 7> remote_id_{{0x2D, 0xD4, 0x06, 0xCB, 0x00, 0xF7, 0xF2}};
         };
